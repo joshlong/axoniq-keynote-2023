@@ -10,7 +10,7 @@ create table if not exists tokenentry
 (
     segment       integer      not null,
     processorName varchar(255) not null,
-    token         text,
+    token         bytea,
     tokenType     varchar(255),
     timestamp     varchar(1000),
     owner         varchar(1000),
