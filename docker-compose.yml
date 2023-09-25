@@ -3,8 +3,16 @@ services:
     image: "axoniq/axonserver:latest-dev"
     hostname: axonserver
     ports:
-      - 8024
-      - 8124
+      - 8024:8024
+      - 8124:8124
     environment:
       AXONIQ_AXONSERVER_STANDALONE: true
       AXONIQ_AXONSERVER_DEVMODE_ENABLED: true
+  postgres:
+    image: 'postgres:latest'
+    environment:
+      - 'POSTGRES_DB=bootiful'
+      - 'POSTGRES_PASSWORD=bootiful'
+      - 'POSTGRES_USER=bootiful'
+    ports:
+      - 5432:5432

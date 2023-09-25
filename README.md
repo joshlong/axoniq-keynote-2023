@@ -2,21 +2,21 @@
 
 
 ## axon has come a long way and so has our friendship 
-- infoq article  
+- [infoq article](https://www.infoq.com/articles/cqrs_with_axon_framework/)  
 - 0.4 release of axon! 
-- early 2010 
+- MAR 24, 2010 
 - 13+ years ago! 
 
 
 ## start.spring.io
-- using the new boot 3.2 M3 
+- using the new boot 3.2 M3
 - using java 21
 - using maven (whomp whomp)
 - web, jdbc, postgres, devtools, testcontainers, graalvm, actuator 
 
 ## code with me and intellij 
 - this is another thing allard and i couldn't have conceived of 13+ years ago! 
-- filler (tell a joke?)
+- filler (Allard to tell a story about pair programming with Josh)
 
 ## add axon 
 
@@ -48,7 +48,7 @@
 </dependency>
 ```
 
-and 
+and (just to be able to resolve the SNAPSHOT dependencies)
 
 ```xml
       <repository>
@@ -69,14 +69,8 @@ and
 - check out the new testcontainers support 
 - wanna use this with axon server 
 - easy! 
-```xml
-<dependency>
-    <groupId>org.axonframework</groupId>
-    <artifactId>axon-test</artifactId>
-    <scope>test</scope>
-    <version>4.9.0-SNAPSHOT</version>
-</dependency>
-```
+
+
 - we need something to help us keep track of our messages and to help distribute the load
 - we need axon server
 - allard tells us about the Axon Server
@@ -89,14 +83,12 @@ and
     AxonServerContainer axonServerContainer() {
         return new AxonServerContainer(DockerImageName.parse("axoniq/axonserver:latest-dev"));
     }
-
 ```
 
 ## autoconfig and axon go together like coffee and stroopwafel
 - axon's always had good support for spring 
 - history of the axon autoconfiguration 
 - axon is easier than ever AND more powerful than ever 
-
 
 ## devtools 
 - explain how devtools works
@@ -106,17 +98,29 @@ and
 
 ## build the conference query/command/handler 
 - before testing, make sure to specify `axon.serializer.general=jackson`
-- then run it and hit `curl http://localhost:8080/?conferenceId=1&conferenceName=AxonIQ`
+- add
+```java
+    @Bean
+    InitializingBean configureJackson(ObjectMapper objectMapper) {
+        return () -> objectMapper.activateDefaultTyping(
+                objectMapper.getPolymorphicTypeValidator(), ObjectMapper.DefaultTyping.JAVA_LANG_OBJECT);
+    }
+```
+ 
+- then run it and hit `curl http://localhost:8080/?conferenceId=1&conferenceName=AxonIQCon`
 
 
 ## working code thus far
 
 - ```
 @Aggregate
-class ConferenceAggregate {
+public static class ConferenceAggregate {
 
     @AggregateIdentifier
     private String conferenceId;
+
+    public ConferenceAggregate() {
+    }
 
     @EventSourcingHandler
     void handle(Messages.ConferenceAnnouncedEvent cae) {
@@ -164,7 +168,7 @@ class Messages {
 ```
 
 - Great!  able to write, (via commands), but we need to read
-- create the query with the querygateway
+- send the query with the querygateway
 
 ```java 
 
@@ -175,7 +179,7 @@ class Messages {
     }
 ```
 
-- this issues a query to the query gateway, whose job it is to keep an optimized projection of the data for particular queries. we'll resolve ours using jdbc.
+- this issues a query to the "projection", whose job it is to keep an optimized projection of the data for particular queries. we'll resolve ours using jdbc.
 
 ```java 
 
@@ -208,17 +212,6 @@ class ConferenceProjection {
 }
 ```
 
-
-add 
-
-```java
-    @Bean
-    InitializingBean onStartup(ObjectMapper objectMapper) {
-        return () -> objectMapper.activateDefaultTyping(
-                objectMapper.getPolymorphicTypeValidator(), ObjectMapper.DefaultTyping.JAVA_LANG_OBJECT);
-    }
-```
-
 We need some SQL schema: 
 
 ```sql 
@@ -228,8 +221,6 @@ create table if not exists conference
     id   varchar(64) not null primary key,
     name text        not null
 );
-delete from conference;
-
 
 create table if not exists tokenentry
 (
@@ -241,9 +232,6 @@ create table if not exists tokenentry
     owner         varchar(1000),
     primary key (processorName, segment)
 );
-
-delete from tokenentry;
-
 ```
 
 
