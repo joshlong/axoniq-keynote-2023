@@ -21,6 +21,13 @@
 ## add axon 
 
 ```xml
+
+<dependency>
+    <groupId>org.axonframework.extensions.spring-aot</groupId>
+    <artifactId>axon-spring-aot</artifactId>
+    <version>4.9.0-SNAPSHOT</version>
+</dependency>
+
 <dependency>
     <groupId>org.axonframework</groupId>
     <artifactId>axon-spring-boot-starter</artifactId>
@@ -228,7 +235,7 @@ create table if not exists tokenentry
 (
     segment       integer      not null,
     processorName varchar(255) not null,
-    token         text,
+    token         bytea,
     tokenType     varchar(255),
     timestamp     varchar(1000),
     owner         varchar(1000),
@@ -238,3 +245,8 @@ create table if not exists tokenentry
 delete from tokenentry;
 
 ```
+
+
+## native 
+
+``` ./mvnw native:compile -Pnative -DskipTests ```

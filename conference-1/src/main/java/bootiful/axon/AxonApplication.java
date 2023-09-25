@@ -37,96 +37,96 @@ public class AxonApplication {
         return () -> objectMapper.activateDefaultTyping(
                 objectMapper.getPolymorphicTypeValidator(), ObjectMapper.DefaultTyping.JAVA_LANG_OBJECT);
     }
-}
 
 
-@Component
-class ConferenceProjection {
+    @Component
+    static class ConferenceProjection {
 
-    private final JdbcClient jdbcClient;
+        private final JdbcClient jdbcClient;
 
-    ConferenceProjection(JdbcClient jdbcClient) {
-        this.jdbcClient = jdbcClient;
+        ConferenceProjection(JdbcClient jdbcClient) {
+            this.jdbcClient = jdbcClient;
+        }
+
+        @EventHandler
+        void handle(Messages.ConferenceCreatedEvent conferenceCreatedEvent) {
+            this.jdbcClient.sql("insert into conference (id, name) values (?,?)")
+                    .param(conferenceCreatedEvent.conferenceId())
+                    .param(conferenceCreatedEvent.conferenceName())
+                    .update();
+        }
+
+        @QueryHandler(queryName = "allConferences")
+        List<Conference> conferences() {
+            return this.jdbcClient
+                    .sql("select * from conference")
+                    .query((rs, rowNum) -> new Conference(rs.getString("id"),
+                            rs.getString("name")))
+                    .list();
+        }
+
     }
 
-    @EventHandler
-    void handle(Messages.ConferenceCreatedEvent conferenceCreatedEvent) {
-        this.jdbcClient.sql("insert into conference (id, name) values (?,?)")
-                .param(conferenceCreatedEvent.conferenceId())
-                .param(conferenceCreatedEvent.conferenceName())
-                .update();
+    @Aggregate
+    public static class ConferenceAggregate {
+
+        @AggregateIdentifier
+        private String conferenceId;
+
+        @CommandHandler
+        public ConferenceAggregate(Messages.CreateConferenceCommand conferenceCommand) {
+            Assert.notNull(conferenceCommand.conferenceName(), "the conference name must be non-null");
+
+            apply(new Messages.ConferenceCreatedEvent(conferenceCommand.conferenceId(),
+                    conferenceCommand.conferenceName()));
+        }
+
+        @EventSourcingHandler
+        void handle(Messages.ConferenceCreatedEvent cae) {
+            this.conferenceId = cae.conferenceId();
+        }
     }
 
-    @QueryHandler(queryName = "allConferences")
-    List<Conference> conferences() {
-        return this.jdbcClient
-                .sql("select * from conference")
-                .query((rs, rowNum) -> new Conference(rs.getString("id"),
-                        rs.getString("name")))
-                .list();
+
+    @Controller
+    @RequestMapping("/")
+    @ResponseBody
+    static class ConferenceController {
+
+        private final CommandGateway commandGateway;
+
+        private final QueryGateway queryGateway;
+
+        ConferenceController(CommandGateway commandGateway, QueryGateway queryGateway) {
+            this.commandGateway = commandGateway;
+            this.queryGateway = queryGateway;
+        }
+
+        @GetMapping
+        CompletableFuture<List<Conference>> conferences() {
+            return this.queryGateway.query(
+                    "allConferences", null, ResponseTypes.multipleInstancesOf(Conference.class));
+        }
+
+        @PostMapping
+        CompletableFuture<String> createConference(@RequestParam String conferenceId, @RequestParam String conferenceName) {
+            return commandGateway.send(
+                    new Messages.CreateConferenceCommand(conferenceId, conferenceName));
+        }
+
     }
 
-}
 
-@Aggregate
-class ConferenceAggregate {
+    static class Messages {
 
-    @AggregateIdentifier
-    private String conferenceId;
+        record ConferenceCreatedEvent(String conferenceId, String conferenceName) {
+        }
 
-    @CommandHandler
-    public ConferenceAggregate(Messages.CreateConferenceCommand conferenceCommand) {
-        Assert.notNull(conferenceCommand.conferenceName(), "the conference name must be non-null");
-
-        apply(new Messages.ConferenceCreatedEvent(conferenceCommand.conferenceId(),
-                conferenceCommand.conferenceName()));
+        record CreateConferenceCommand(String conferenceId, String conferenceName) {
+        }
     }
 
-    @EventSourcingHandler
-    void handle(Messages.ConferenceCreatedEvent cae) {
-        this.conferenceId = cae.conferenceId();
+
+    record Conference(String conferenceId, String conferenceName) {
     }
-}
-
-
-@Controller
-@RequestMapping("/")
-@ResponseBody
-class ConferenceController {
-
-    private final CommandGateway commandGateway;
-
-    private final QueryGateway queryGateway;
-
-    ConferenceController(CommandGateway commandGateway, QueryGateway queryGateway) {
-        this.commandGateway = commandGateway;
-        this.queryGateway = queryGateway;
-    }
-
-    @GetMapping
-    CompletableFuture<List<Conference>> conferences() {
-        return this.queryGateway.query(
-                "allConferences", null, ResponseTypes.multipleInstancesOf(Conference.class));
-    }
-
-    @PostMapping
-    CompletableFuture<String> createConference(@RequestParam String conferenceId, @RequestParam String conferenceName) {
-        return commandGateway.send(
-                new Messages.CreateConferenceCommand(conferenceId, conferenceName));
-    }
-
-}
-
-
-class Messages {
-
-    record ConferenceCreatedEvent(String conferenceId, String conferenceName) {
-    }
-
-    record CreateConferenceCommand(String conferenceId, String conferenceName) {
-    }
-}
-
-
-record Conference(String conferenceId, String conferenceName) {
 }
