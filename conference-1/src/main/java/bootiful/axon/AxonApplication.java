@@ -34,8 +34,7 @@ public class AxonApplication {
 
     @Bean
     InitializingBean onStartup(ObjectMapper objectMapper) {
-        return () -> objectMapper.activateDefaultTyping(
-                objectMapper.getPolymorphicTypeValidator(), ObjectMapper.DefaultTyping.JAVA_LANG_OBJECT);
+        return () -> objectMapper.activateDefaultTyping(objectMapper.getPolymorphicTypeValidator(), ObjectMapper.DefaultTyping.JAVA_LANG_OBJECT);
     }
 
 
@@ -49,20 +48,13 @@ public class AxonApplication {
         }
 
         @EventHandler
-        void handle(Messages.ConferenceCreatedEvent conferenceCreatedEvent) {
-            this.jdbcClient.sql("insert into conference (id, name) values (?,?)")
-                    .param(conferenceCreatedEvent.conferenceId())
-                    .param(conferenceCreatedEvent.conferenceName())
-                    .update();
+        void handle(ConferenceCreatedEvent conferenceCreatedEvent) {
+            this.jdbcClient.sql("insert into conference (id, name) values (?,?)").param(conferenceCreatedEvent.conferenceId()).param(conferenceCreatedEvent.conferenceName()).update();
         }
 
         @QueryHandler(queryName = "allConferences")
         List<Conference> conferences() {
-            return this.jdbcClient
-                    .sql("select * from conference")
-                    .query((rs, rowNum) -> new Conference(rs.getString("id"),
-                            rs.getString("name")))
-                    .list();
+            return this.jdbcClient.sql("select * from conference").query((rs, rowNum) -> new Conference(rs.getString("id"), rs.getString("name"))).list();
         }
 
     }
@@ -74,15 +66,14 @@ public class AxonApplication {
         private String conferenceId;
 
         @CommandHandler
-        public ConferenceAggregate(Messages.CreateConferenceCommand conferenceCommand) {
+        public ConferenceAggregate(CreateConferenceCommand conferenceCommand) {
             Assert.notNull(conferenceCommand.conferenceName(), "the conference name must be non-null");
 
-            apply(new Messages.ConferenceCreatedEvent(conferenceCommand.conferenceId(),
-                    conferenceCommand.conferenceName()));
+            apply(new ConferenceCreatedEvent(conferenceCommand.conferenceId(), conferenceCommand.conferenceName()));
         }
 
         @EventSourcingHandler
-        void handle(Messages.ConferenceCreatedEvent cae) {
+        void handle(ConferenceCreatedEvent cae) {
             this.conferenceId = cae.conferenceId();
         }
     }
@@ -103,29 +94,22 @@ public class AxonApplication {
         }
 
         @GetMapping
-        CompletableFuture<List<Conference>> conferences() {
-            return this.queryGateway.query(
-                    "allConferences", null, ResponseTypes.multipleInstancesOf(Conference.class));
+        CompletableFuture<List<Conference>> read() {
+            return this.queryGateway.query("allConferences", null, ResponseTypes.multipleInstancesOf(Conference.class));
         }
 
         @PostMapping
-        CompletableFuture<String> createConference(@RequestParam String conferenceId, @RequestParam String conferenceName) {
-            return commandGateway.send(
-                    new Messages.CreateConferenceCommand(conferenceId, conferenceName));
-        }
-
-    }
-
-
-    static class Messages {
-
-        record ConferenceCreatedEvent(String conferenceId, String conferenceName) {
-        }
-
-        record CreateConferenceCommand(String conferenceId, String conferenceName) {
+        CompletableFuture<String> write(@RequestParam String conferenceId, @RequestParam String conferenceName) {
+            return commandGateway.send(new CreateConferenceCommand(conferenceId, conferenceName));
         }
     }
 
+
+    record ConferenceCreatedEvent(String conferenceId, String conferenceName) {
+    }
+
+    record CreateConferenceCommand(String conferenceId, String conferenceName) {
+    }
 
     record Conference(String conferenceId, String conferenceName) {
     }
