@@ -112,26 +112,27 @@ and (just to be able to resolve the SNAPSHOT dependencies)
 
 ## working code thus far
 
-- ```
+```java
 @Aggregate
 public static class ConferenceAggregate {
 
     @AggregateIdentifier
     private String conferenceId;
 
-    public ConferenceAggregate() {
-    }
-
-    @EventSourcingHandler
-    void handle(Messages.ConferenceAnnouncedEvent cae) {
-        this.conferenceId = cae.conferenceId();
+    ConferenceAggregate() {
+        // mandatory no-arg constructor
     }
 
     @CommandHandler
-    public ConferenceAggregate(Messages.CreateConferenceCommand conferenceCommand) {
-        // goes to axon server
-        apply(new Messages.ConferenceAnnouncedEvent(conferenceCommand.conferenceId(),
-                conferenceCommand.conferenceName()));
+    public ConferenceAggregate(Messages.CreateConferenceCommand command) {
+        // calls event sourcing handler, and then sends the event off to axon server
+        apply(new Messages.ConferenceAnnouncedEvent(command.conferenceId(),
+                                                    command.conferenceName()));
+    }
+
+    @EventSourcingHandler
+    void handle(Messages.ConferenceAnnouncedEvent event) {
+        this.conferenceId = event.conferenceId();
     }
 }
 
@@ -152,7 +153,6 @@ class ConferenceController {
         return commandGateway.send(
                 new Messages.CreateConferenceCommand(conferenceId, conferenceName));
     }
-
 }
 
 
@@ -171,7 +171,6 @@ class Messages {
 - send the query with the querygateway
 
 ```java 
-
     @GetMapping
     CompletableFuture<List<Conference>> conferences() {
         return this.queryGateway.query(
