@@ -12,19 +12,19 @@ import org.testcontainers.utility.DockerImageName;
 @TestConfiguration(proxyBeanMethods = false)
 public class TestAxonApplication {
 
-    @RestartScope
     @Bean
     @ServiceConnection
     PostgreSQLContainer<?> postgresContainer() {
         return new PostgreSQLContainer<>(DockerImageName.parse("postgres:latest"));
     }
 
-    @RestartScope
     @Bean
+    @RestartScope
     @ServiceConnection
     AxonServerContainer axonServerContainer() {
-        return new AxonServerContainer(DockerImageName.parse("axoniq/axonserver:latest-dev"))
-                ;
+        return new AxonServerContainer(
+                DockerImageName.parse("axoniq/axonserver:latest-dev")
+        );
     }
 
     public static void main(String[] args) {

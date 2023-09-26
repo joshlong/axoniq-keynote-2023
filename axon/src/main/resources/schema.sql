@@ -1,10 +1,7 @@
-create table if not exists conference
-(
-    id   varchar(64) not null primary key,
-    name text        not null
-);
-delete from conference;
-
+create table if not exists conference (
+    id varchar(255) not null primary key  ,
+    name text not null
+) ;
 
 create table if not exists tokenentry
 (
@@ -16,4 +13,3 @@ create table if not exists tokenentry
     owner         varchar(1000),
     primary key (processorName, segment)
 );
-delete from tokenentry;

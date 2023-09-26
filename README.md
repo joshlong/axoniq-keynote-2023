@@ -23,12 +23,6 @@
 ```xml
 
 <dependency>
-    <groupId>org.axonframework.extensions.spring-aot</groupId>
-    <artifactId>axon-spring-aot</artifactId>
-    <version>4.9.0-SNAPSHOT</version>
-</dependency>
-
-<dependency>
     <groupId>org.axonframework</groupId>
     <artifactId>axon-spring-boot-starter</artifactId>
     <version>4.9.0-SNAPSHOT</version>
@@ -46,6 +40,13 @@
     <scope>test</scope>
     <version>4.9.0-SNAPSHOT</version>
 </dependency>
+
+<dependency>
+    <groupId>org.axonframework.extensions.spring-aot</groupId>
+    <artifactId>axon-spring-aot</artifactId>
+    <version>4.9.0-SNAPSHOT</version>
+</dependency>
+
 ```
 
 and (just to be able to resolve the SNAPSHOT dependencies)
